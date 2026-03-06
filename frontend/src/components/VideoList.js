@@ -1,7 +1,58 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { videoAPI } from '../services/api';
+import { videoAPI, authAPI } from '../services/api';
+
+function PasswordGate({ user, onAuthenticated }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await authAPI.signin(user.email, password);
+      onAuthenticated();
+    } catch (err) {
+      setError('Incorrect password. Please try again.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <h2>Verify Identity</h2>
+        <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 20, fontSize: '0.9rem' }}>
+          Enter your password to access your videos
+        </p>
+        {error && <div className="error-msg">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Email</label>
+            <input type="email" value={user.email} disabled style={{ opacity: 0.6 }} />
+          </div>
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={loading}>
+            {loading ? 'Verifying...' : 'Continue'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function VideoList({ user, onPlayVideo }) {
+  const [authenticated, setAuthenticated] = useState(false);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,8 +68,10 @@ function VideoList({ user, onPlayVideo }) {
   }, []);
 
   useEffect(() => {
-    loadVideos();
-  }, [loadVideos]);
+    if (authenticated) {
+      loadVideos();
+    }
+  }, [authenticated, loadVideos]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this video?')) return;
@@ -35,6 +88,10 @@ function VideoList({ user, onPlayVideo }) {
     const mb = bytes / (1024 * 1024);
     return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(1)} MB`;
   };
+
+  if (!authenticated) {
+    return <PasswordGate user={user} onAuthenticated={() => setAuthenticated(true)} />;
+  }
 
   if (loading) {
     return <div className="video-list-page"><p className="no-videos">Loading videos...</p></div>;

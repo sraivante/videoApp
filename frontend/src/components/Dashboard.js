@@ -68,7 +68,6 @@ function VideoCard({ video, onClick, onDelete, showDelete }) {
 
 function Dashboard({ user }) {
   const location = useLocation();
-  const [myVideos, setMyVideos] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -81,12 +80,8 @@ function Dashboard({ user }) {
 
   const loadVideos = useCallback(async () => {
     try {
-      const [myRes, sugRes] = await Promise.all([
-        videoAPI.getMyVideos(),
-        videoAPI.getSuggestions(),
-      ]);
-      setMyVideos(myRes.data);
-      setSuggestions(sugRes.data);
+      const res = await videoAPI.getSuggestions();
+      setSuggestions(res.data);
     } catch (err) {
       console.error('Failed to load videos', err);
     }
@@ -108,7 +103,7 @@ function Dashboard({ user }) {
     }
   }, [volume, currentVideo]);
 
-  const allVideos = [...myVideos, ...suggestions.filter(s => !myVideos.find(m => m.id === s.id))];
+  const allVideos = suggestions;
 
   const playVideo = (video) => {
     setCurrentVideo(video);
@@ -173,17 +168,6 @@ function Dashboard({ user }) {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this video?')) return;
-    try {
-      await videoAPI.deleteVideo(id);
-      if (currentVideo?.id === id) setCurrentVideo(null);
-      loadVideos();
-    } catch (err) {
-      setStatus({ msg: 'Delete failed', type: 'error' });
-    }
-  };
-
   const formatSize = (bytes) => {
     if (!bytes) return '';
     const mb = bytes / (1024 * 1024);
@@ -193,7 +177,7 @@ function Dashboard({ user }) {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>My Videos</h2>
+        <h2>Dashboard</h2>
         <div className="dashboard-actions">
           <button className="btn btn-primary" onClick={() => { setShowUpload(!showUpload); setShowYoutube(false); }}>
             Upload Video
@@ -276,29 +260,6 @@ function Dashboard({ user }) {
               <button className="btn btn-secondary" onClick={playNext}>Next</button>
             </div>
           </div>
-        </div>
-      )}
-
-      {myVideos.length > 0 && (
-        <div className="video-section">
-          <h3>Your Videos</h3>
-          <div className="video-grid">
-            {myVideos.map((video) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                onClick={playVideo}
-                onDelete={handleDelete}
-                showDelete
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {myVideos.length === 0 && (
-        <div className="no-videos">
-          <p>No videos yet. Upload a video or download from YouTube to get started!</p>
         </div>
       )}
 
