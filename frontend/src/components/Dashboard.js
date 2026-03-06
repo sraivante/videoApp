@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { videoAPI } from '../services/api';
 
 function VideoCard({ video, onClick, onDelete, showDelete }) {
@@ -66,6 +67,7 @@ function VideoCard({ video, onClick, onDelete, showDelete }) {
 }
 
 function Dashboard({ user }) {
+  const location = useLocation();
   const [myVideos, setMyVideos] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
@@ -89,6 +91,12 @@ function Dashboard({ user }) {
       console.error('Failed to load videos', err);
     }
   }, []);
+
+  useEffect(() => {
+    if (location.state?.playVideo) {
+      setCurrentVideo(location.state.playVideo);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     loadVideos();
@@ -297,7 +305,7 @@ function Dashboard({ user }) {
       {suggestions.length > 0 && (
         <div className="video-section">
           <h3>Suggestions</h3>
-          <div className="video-grid">
+          <HorizontalScroller>
             {suggestions.map((video) => (
               <VideoCard
                 key={video.id}
@@ -307,8 +315,59 @@ function Dashboard({ user }) {
                 showDelete={false}
               />
             ))}
-          </div>
+          </HorizontalScroller>
         </div>
+      )}
+    </div>
+  );
+}
+
+function HorizontalScroller({ children }) {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+    }
+    return () => {
+      if (el) el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, children]);
+
+  const scroll = (direction) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.8;
+    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="h-scroller-wrap">
+      {canScrollLeft && (
+        <button className="h-scroller-btn h-scroller-left" onClick={() => scroll('left')}>
+          &#8249;
+        </button>
+      )}
+      <div className="h-scroller" ref={scrollRef}>
+        {children}
+      </div>
+      {canScrollRight && (
+        <button className="h-scroller-btn h-scroller-right" onClick={() => scroll('right')}>
+          &#8250;
+        </button>
       )}
     </div>
   );

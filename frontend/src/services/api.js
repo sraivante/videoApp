@@ -27,6 +27,8 @@ api.interceptors.response.use(
 export const authAPI = {
   signin: (email, password) => api.post('/auth/signin', { email, password }),
   signup: (email, password, name) => api.post('/auth/signup', { email, password, name }),
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/auth/change-password', { currentPassword, newPassword }),
 };
 
 export const videoAPI = {
