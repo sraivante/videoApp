@@ -2,15 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { videoAPI } from '../services/api';
 
-function VideoCard({ video, onClick, onDelete, showDelete }) {
+function VideoCard({ video, onClick }) {
   const hasThumbnail = !!video.thumbnailName;
   const [thumbError, setThumbError] = useState(false);
   const fallbackVideoRef = useRef(null);
 
   useEffect(() => {
     if ((!hasThumbnail || thumbError) && fallbackVideoRef.current) {
-      const vid = fallbackVideoRef.current;
-      vid.currentTime = 2;
+      fallbackVideoRef.current.currentTime = 2;
     }
   }, [hasThumbnail, thumbError]);
 
@@ -52,50 +51,70 @@ function VideoCard({ video, onClick, onDelete, showDelete }) {
           <span className="video-date">{new Date(video.uploadedAt).toLocaleDateString()}</span>
         </p>
       </div>
-      {showDelete && (
-        <div className="video-card-actions">
-          <button
-            className="btn btn-danger btn-sm"
-            onClick={(e) => { e.stopPropagation(); onDelete(video.id); }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function Dashboard({ user }) {
   const location = useLocation();
-  const [suggestions, setSuggestions] = useState([]);
+  const [allVideos, setAllVideos] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [showUpload, setShowUpload] = useState(false);
   const [showYoutube, setShowYoutube] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [status, setStatus] = useState({ msg: '', type: '' });
   const [volume, setVolume] = useState(1);
+  const [loaded, setLoaded] = useState(false);
   const videoRef = useRef(null);
 
   const loadVideos = useCallback(async () => {
     try {
-      const res = await videoAPI.getSuggestions();
-      setSuggestions(res.data);
+      const [myRes, sugRes] = await Promise.all([
+        videoAPI.getMyVideos(),
+        videoAPI.getSuggestions(),
+      ]);
+      const myVids = myRes.data;
+      const sugVids = sugRes.data;
+      // merge, deduplicate, shuffle
+      const merged = [...myVids];
+      sugVids.forEach(s => {
+        if (!merged.find(m => m.id === s.id)) merged.push(s);
+      });
+      const shuffled = shuffle(merged);
+      setAllVideos(shuffled);
+      // auto-play first video if nothing is playing
+      if (shuffled.length > 0 && !currentVideo) {
+        setCurrentVideo(shuffled[0]);
+        setCurrentIndex(0);
+      }
+      setLoaded(true);
     } catch (err) {
       console.error('Failed to load videos', err);
+      setLoaded(true);
     }
-  }, []);
-
-  useEffect(() => {
-    if (location.state?.playVideo) {
-      setCurrentVideo(location.state.playVideo);
-    }
-  }, [location.state]);
+  }, []); // intentionally no currentVideo dep to avoid re-shuffle
 
   useEffect(() => {
     loadVideos();
   }, [loadVideos]);
+
+  useEffect(() => {
+    if (location.state?.playVideo) {
+      setCurrentVideo(location.state.playVideo);
+      const idx = allVideos.findIndex(v => v.id === location.state.playVideo.id);
+      if (idx >= 0) setCurrentIndex(idx);
+    }
+  }, [location.state, allVideos]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -103,12 +122,10 @@ function Dashboard({ user }) {
     }
   }, [volume, currentVideo]);
 
-  const allVideos = suggestions;
-
   const playVideo = (video) => {
     setCurrentVideo(video);
     const idx = allVideos.findIndex(v => v.id === video.id);
-    setCurrentIndex(idx);
+    setCurrentIndex(idx >= 0 ? idx : 0);
   };
 
   const playNext = () => {
@@ -263,19 +280,25 @@ function Dashboard({ user }) {
         </div>
       )}
 
-      {suggestions.length > 0 && (
+      {!currentVideo && loaded && allVideos.length === 0 && (
+        <div className="no-videos">
+          <p>No videos yet. Upload a video or download from YouTube to get started!</p>
+        </div>
+      )}
+
+      {allVideos.length > 0 && (
         <div className="video-section">
           <h3>Suggestions</h3>
           <HorizontalScroller>
-            {suggestions.map((video) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                onClick={playVideo}
-                onDelete={handleDelete}
-                showDelete={false}
-              />
-            ))}
+            {allVideos
+              .filter(v => !currentVideo || v.id !== currentVideo.id)
+              .map((video) => (
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  onClick={playVideo}
+                />
+              ))}
           </HorizontalScroller>
         </div>
       )}
