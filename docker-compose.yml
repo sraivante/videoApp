@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: videoapp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: videoapp
+      MYSQL_USER: root1
+      MYSQL_PASSWORD: "Dzee2015$$"
+    ports:
+      - "3040:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: videoapp-backend
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root1
+      MYSQL_PASSWORD: "Dzee2015$$"
+      VIDEO_STORAGE_PATH: ./videos
+      JWT_SECRET: mySecretKeyForJWTTokenGenerationThatIsLongEnoughForHS256Algorithm2024
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./videos:/app/videos
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: videoapp-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql-data:

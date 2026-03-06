@@ -1,0 +1,9 @@
+videos/
+backend/target/
+frontend/node_modules/
+frontend/build/
+.idea/
+*.class
+*.jar
+*.log
+.env
