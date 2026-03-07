@@ -75,6 +75,9 @@ function Dashboard({ user }) {
   const [status, setStatus] = useState({ msg: '', type: '' });
   const [volume, setVolume] = useState(1);
   const [loaded, setLoaded] = useState(false);
+  const [showEndScreen, setShowEndScreen] = useState(false);
+  const [autoPlayCountdown, setAutoPlayCountdown] = useState(0);
+  const countdownRef = useRef(null);
   const videoRef = useRef(null);
 
   const loadVideos = useCallback(async () => {
@@ -122,24 +125,69 @@ function Dashboard({ user }) {
     }
   }, [volume, currentVideo]);
 
-  const playVideo = (video) => {
+  const clearCountdown = useCallback(() => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+  }, []);
+
+  const playVideo = useCallback((video) => {
+    clearCountdown();
+    setShowEndScreen(false);
     setCurrentVideo(video);
     const idx = allVideos.findIndex(v => v.id === video.id);
     setCurrentIndex(idx >= 0 ? idx : 0);
-  };
+  }, [allVideos, clearCountdown]);
 
-  const playNext = () => {
+  const playNext = useCallback(() => {
     if (allVideos.length === 0) return;
+    clearCountdown();
+    setShowEndScreen(false);
     const next = (currentIndex + 1) % allVideos.length;
     setCurrentIndex(next);
     setCurrentVideo(allVideos[next]);
-  };
+  }, [allVideos, currentIndex, clearCountdown]);
 
-  const playPrev = () => {
+  const playPrev = useCallback(() => {
     if (allVideos.length === 0) return;
+    clearCountdown();
+    setShowEndScreen(false);
     const prev = (currentIndex - 1 + allVideos.length) % allVideos.length;
     setCurrentIndex(prev);
     setCurrentVideo(allVideos[prev]);
+  }, [allVideos, currentIndex, clearCountdown]);
+
+  const handleVideoEnded = useCallback(() => {
+    if (allVideos.length <= 1) return;
+    setShowEndScreen(true);
+    setAutoPlayCountdown(10);
+    clearCountdown();
+    countdownRef.current = setInterval(() => {
+      setAutoPlayCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          playNext();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [allVideos, playNext, clearCountdown]);
+
+  useEffect(() => {
+    return () => clearCountdown();
+  }, [clearCountdown]);
+
+  const getNextSuggestions = (count) => {
+    const others = allVideos.filter(v => v.id !== currentVideo?.id);
+    const start = currentIndex % Math.max(others.length, 1);
+    const result = [];
+    for (let i = 0; i < Math.min(count, others.length); i++) {
+      result.push(others[(start + i) % others.length]);
+    }
+    return result;
   };
 
   const handleUpload = async (e) => {
@@ -245,16 +293,34 @@ function Dashboard({ user }) {
 
       {currentVideo && (
         <div className="video-player-section">
-          <video
-            ref={videoRef}
-            key={currentVideo.id}
-            controls
-            autoPlay
-            onEnded={playNext}
-          >
-            <source src={videoAPI.streamUrl(currentVideo.fileName)} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          <div className="video-frame-wrap">
+            <video
+              ref={videoRef}
+              key={currentVideo.id}
+              controls
+              autoPlay
+              onEnded={handleVideoEnded}
+              onPlay={() => { setShowEndScreen(false); clearCountdown(); }}
+            >
+              <source src={videoAPI.streamUrl(currentVideo.fileName)} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+
+            {showEndScreen && (
+              <div className="end-screen-overlay">
+                <div className="end-screen-header">
+                  <span>Up Next in {autoPlayCountdown}s</span>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { setShowEndScreen(false); clearCountdown(); }}>
+                    Cancel
+                  </button>
+                </div>
+                <EndScreenScroller
+                  videos={getNextSuggestions(4)}
+                  onSelect={playVideo}
+                />
+              </div>
+            )}
+          </div>
           <div className="player-controls">
             <div className="player-info">
               <h3>{currentVideo.title}</h3>
@@ -302,6 +368,63 @@ function Dashboard({ user }) {
           </HorizontalScroller>
         </div>
       )}
+    </div>
+  );
+}
+
+function EndScreenScroller({ videos, onSelect }) {
+  const scrollRef = useRef(null);
+  const [dragStart, setDragStart] = useState(null);
+
+  const handleMouseDown = (e) => {
+    setDragStart({ x: e.clientX, scrollLeft: scrollRef.current.scrollLeft });
+  };
+  const handleMouseMove = (e) => {
+    if (!dragStart) return;
+    const dx = e.clientX - dragStart.x;
+    scrollRef.current.scrollLeft = dragStart.scrollLeft - dx;
+  };
+  const handleMouseUp = () => setDragStart(null);
+
+  const handleTouchStart = (e) => {
+    setDragStart({ x: e.touches[0].clientX, scrollLeft: scrollRef.current.scrollLeft });
+  };
+  const handleTouchMove = (e) => {
+    if (!dragStart) return;
+    const dx = e.touches[0].clientX - dragStart.x;
+    scrollRef.current.scrollLeft = dragStart.scrollLeft - dx;
+  };
+
+  return (
+    <div
+      className="end-screen-cards"
+      ref={scrollRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={() => setDragStart(null)}
+    >
+      {videos.map((video) => (
+        <div key={video.id} className="end-screen-card" onClick={() => onSelect(video)}>
+          <div className="end-card-thumb">
+            {video.thumbnailName ? (
+              <img src={videoAPI.thumbnailUrl(video.thumbnailName)} alt={video.title} />
+            ) : (
+              <video
+                src={videoAPI.streamUrl(video.fileName)}
+                muted
+                preload="metadata"
+                onLoadedData={(e) => { e.target.currentTime = 2; }}
+              />
+            )}
+            <div className="end-card-play">&#9654;</div>
+          </div>
+          <p className="end-card-title">{video.title}</p>
+        </div>
+      ))}
     </div>
   );
 }
