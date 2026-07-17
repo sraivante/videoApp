@@ -8,3 +8,6 @@ frontend/build/
 *.jar
 *.log
 .env
+
+# Local Claude Code settings (may contain secrets)
+.claude/settings.local.json
