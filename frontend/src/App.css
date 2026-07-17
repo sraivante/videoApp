@@ -113,6 +113,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  padding: 20px;
   background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
 }
 
@@ -120,7 +121,8 @@ body {
   background: #1a1a2e;
   padding: 40px;
   border-radius: 12px;
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -788,4 +790,212 @@ body {
 
 .h-scroller-right {
   right: -12px;
+}
+
+/* ============================================================
+   Responsive — Tablet (<= 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Navbar: wrap into two rows, brand+user on top, links below */
+  .navbar {
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .navbar-left {
+    gap: 16px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+
+  .navbar-links {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .nav-link {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 8px 10px;
+  }
+
+  .navbar-user {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .navbar-user span {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+
+  /* Page padding */
+  .dashboard,
+  .video-list-page {
+    padding: 16px;
+  }
+
+  /* Dashboard header */
+  .dashboard-header {
+    align-items: flex-start;
+  }
+
+  .dashboard-actions {
+    width: 100%;
+  }
+
+  .dashboard-actions .btn {
+    flex: 1 1 0;
+  }
+
+  /* Player controls: stack vertically */
+  .player-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .volume-control {
+    justify-content: space-between;
+  }
+
+  .volume-control input[type="range"] {
+    flex: 1;
+    width: auto;
+    margin: 0 4px;
+  }
+
+  .player-nav {
+    justify-content: space-between;
+  }
+
+  .player-nav .btn {
+    flex: 1 1 0;
+  }
+
+  .video-player-section video {
+    max-height: 50vh;
+  }
+
+  /* Suggestions cards a touch smaller */
+  .h-scroller > .video-card {
+    min-width: 220px;
+    max-width: 220px;
+  }
+
+  .h-scroller-btn {
+    display: none;
+  }
+
+  /* My Videos: turn the table into stacked cards */
+  .vl-table thead {
+    display: none;
+  }
+
+  .vl-table,
+  .vl-table tbody,
+  .vl-table tr,
+  .vl-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .vl-table tr {
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+
+  .vl-table tr:hover {
+    background: #1a1a2e;
+  }
+
+  .vl-table td {
+    padding: 6px 0;
+    border-bottom: none;
+  }
+
+  .vl-preview {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .vl-actions {
+    margin-top: 4px;
+  }
+
+  .vl-actions .btn {
+    flex: 1 1 0;
+  }
+}
+
+/* ============================================================
+   Responsive — Phone (<= 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+
+  .navbar-user span {
+    max-width: 90px;
+  }
+
+  .btn {
+    padding: 7px 14px;
+    font-size: 0.85rem;
+  }
+
+  .auth-card {
+    padding: 28px 20px;
+  }
+
+  .dashboard,
+  .video-list-page {
+    padding: 12px;
+  }
+
+  .dashboard-header h2,
+  .vl-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .h-scroller > .video-card {
+    min-width: 75vw;
+    max-width: 75vw;
+  }
+
+  .end-screen-card {
+    min-width: 150px;
+    max-width: 150px;
+  }
+
+  .end-card-thumb {
+    height: 84px;
+  }
+
+  .modal-content {
+    padding: 24px 20px;
+  }
+
+  .video-player-section video {
+    max-height: 42vh;
+  }
 }
