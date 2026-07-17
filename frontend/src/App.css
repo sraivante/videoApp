@@ -27,7 +27,8 @@ body {
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 16px;
+  position: relative;
 }
 
 .navbar-brand {
@@ -36,17 +37,94 @@ body {
   color: #e94560;
 }
 
-.navbar-links {
+/* Home button */
+.home-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.home-btn:hover {
+  color: #e94560;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Burger menu button */
+.burger-btn {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 34px;
+  height: 34px;
+  padding: 7px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.burger-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.burger-btn span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #ccc;
+  border-radius: 2px;
+  transition: transform 0.25s, opacity 0.25s;
+}
+
+.burger-btn.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.burger-btn.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.burger-btn.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Nav links as a dropdown panel toggled by the burger */
+.navbar-links {
+  display: none;
+  flex-direction: column;
   gap: 4px;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 180px;
+  padding: 8px;
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.navbar-links.open {
+  display: flex;
 }
 
 .nav-link {
+  display: block;
   color: #aaa;
   text-decoration: none;
-  padding: 6px 14px;
+  padding: 8px 14px;
   border-radius: 6px;
   font-size: 0.9rem;
+  white-space: nowrap;
   transition: all 0.2s;
 }
 
@@ -988,17 +1066,8 @@ body {
     font-size: 1.25rem;
   }
 
-  .navbar-links {
-    order: 3;
-    flex-basis: 100%;
-    justify-content: center;
-    gap: 8px;
-  }
-
   .nav-link {
-    flex: 1 1 0;
-    text-align: center;
-    padding: 8px 10px;
+    padding: 10px 12px;
   }
 
   .navbar-user {
