@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import ChangePassword from './ChangePassword';
+import Settings from './Settings';
 
 function Navbar({ user, onLogout }) {
-  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const location = useLocation();
 
   return (
@@ -22,13 +22,23 @@ function Navbar({ user, onLogout }) {
         </div>
         <div className="navbar-user">
           <span>{user.name || user.email}</span>
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowChangePassword(true)}>
-            Change Password
+          <button
+            className="settings-icon-btn"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+            aria-label="Settings"
+          >
+            &#9881;
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={onLogout}>Logout</button>
         </div>
       </nav>
-      {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
+      {showSettings && (
+        <Settings
+          user={user}
+          onLogout={onLogout}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </>
   );
 }

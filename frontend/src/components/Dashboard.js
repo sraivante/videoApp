@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { videoAPI } from '../services/api';
+import { getSettings } from '../services/settings';
 
 function VideoCard({ video, onClick }) {
   const hasThumbnail = !!video.thumbnailName;
@@ -73,7 +74,8 @@ function Dashboard({ user }) {
   const [showYoutube, setShowYoutube] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [status, setStatus] = useState({ msg: '', type: '' });
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(() => getSettings().defaultVolume);
+  const [autoPlayNext, setAutoPlayNext] = useState(() => getSettings().autoPlayNext);
   const [loaded, setLoaded] = useState(false);
   const [showEndScreen, setShowEndScreen] = useState(false);
   const [autoPlayCountdown, setAutoPlayCountdown] = useState(0);
@@ -125,6 +127,17 @@ function Dashboard({ user }) {
     }
   }, [volume, currentVideo]);
 
+  // React to playback preference changes made in the Settings panel.
+  useEffect(() => {
+    const applySettings = () => {
+      const s = getSettings();
+      setVolume(s.defaultVolume);
+      setAutoPlayNext(s.autoPlayNext);
+    };
+    window.addEventListener('settingschange', applySettings);
+    return () => window.removeEventListener('settingschange', applySettings);
+  }, []);
+
   const clearCountdown = useCallback(() => {
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
@@ -159,7 +172,7 @@ function Dashboard({ user }) {
   }, [allVideos, currentIndex, clearCountdown]);
 
   const handleVideoEnded = useCallback(() => {
-    if (allVideos.length <= 1) return;
+    if (allVideos.length <= 1 || !autoPlayNext) return;
     setShowEndScreen(true);
     setAutoPlayCountdown(10);
     clearCountdown();
@@ -174,7 +187,7 @@ function Dashboard({ user }) {
         return prev - 1;
       });
     }, 1000);
-  }, [allVideos, playNext, clearCountdown]);
+  }, [allVideos, autoPlayNext, playNext, clearCountdown]);
 
   useEffect(() => {
     return () => clearCountdown();

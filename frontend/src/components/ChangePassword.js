@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { authAPI } from '../services/api';
 
-function ChangePassword({ onClose }) {
+function ChangePassword({ onClose, embedded = false }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,11 +28,55 @@ function ChangePassword({ onClose }) {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(onClose, 1500);
+      if (onClose) setTimeout(onClose, 1500);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to change password');
     }
   };
+
+  const formBody = (
+    <>
+      {error && <div className="error-msg">{error}</div>}
+      {success && <div className="status-msg status-success">{success}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Current Password</label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>New Password</label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+        </div>
+        <div className="form-group">
+          <label>Confirm New Password</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button className="btn btn-primary" type="submit" style={{ width: '100%' }}>
+          Change Password
+        </button>
+      </form>
+    </>
+  );
+
+  if (embedded) {
+    return formBody;
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -41,41 +85,7 @@ function ChangePassword({ onClose }) {
           <h3>Change Password</h3>
           <button className="modal-close" onClick={onClose}>x</button>
         </div>
-        {error && <div className="error-msg">{error}</div>}
-        {success && <div className="status-msg status-success">{success}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Current Password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </div>
-          <div className="form-group">
-            <label>Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button className="btn btn-primary" type="submit" style={{ width: '100%' }}>
-            Change Password
-          </button>
-        </form>
+        {formBody}
       </div>
     </div>
   );
