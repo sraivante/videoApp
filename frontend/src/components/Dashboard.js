@@ -212,25 +212,51 @@ function Dashboard({ user }) {
       form.reset();
       loadVideos();
     } catch (err) {
-      setStatus({ msg: 'Upload failed: ' + (err.response?.data?.error || err.message), type: 'error' });
+      setUploadProgress(0);
+      if (err.response?.status === 409) {
+        setStatus({ msg: err.response.data.message || 'You already have this video.', type: 'error' });
+      } else {
+        setStatus({ msg: 'Upload failed: ' + (err.response?.data?.error || err.message), type: 'error' });
+      }
+    }
+  };
+
+  const submitYoutube = async (url, redownload) => {
+    setStatus({
+      msg: redownload
+        ? 'Removing the existing copy and downloading again... This may take a while.'
+        : 'Downloading from YouTube... This may take a while.',
+      type: 'loading',
+    });
+    try {
+      await videoAPI.downloadYoutube(url, redownload);
+      setStatus({ msg: 'Download successful!', type: 'success' });
+      setShowYoutube(false);
+      loadVideos();
+      return true;
+    } catch (err) {
+      if (err.response?.status === 409 && err.response?.data?.status === 'already_downloaded') {
+        const proceed = window.confirm(
+          (err.response.data.message || 'This video is already downloaded.') +
+          '\n\nDelete the existing copy and download it again?'
+        );
+        if (proceed) return submitYoutube(url, true);
+        setStatus({ msg: 'Cancelled — the video is already in your library.', type: '' });
+        return false;
+      }
+      setStatus({ msg: 'Download failed: ' + (err.response?.data?.error || err.message), type: 'error' });
+      return false;
     }
   };
 
   const handleYoutubeDownload = async (e) => {
     e.preventDefault();
-    const url = e.target.url.value;
+    const form = e.target;
+    const url = form.url.value;
     if (!url) return;
 
-    setStatus({ msg: 'Downloading from YouTube... This may take a while.', type: 'loading' });
-    try {
-      await videoAPI.downloadYoutube(url);
-      setStatus({ msg: 'Download successful!', type: 'success' });
-      setShowYoutube(false);
-      e.target.reset();
-      loadVideos();
-    } catch (err) {
-      setStatus({ msg: 'Download failed: ' + (err.response?.data?.error || err.message), type: 'error' });
-    }
+    const ok = await submitYoutube(url, false);
+    if (ok) form.reset();
   };
 
   const formatSize = (bytes) => {

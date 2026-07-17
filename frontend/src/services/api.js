@@ -39,7 +39,8 @@ export const videoAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: onProgress,
     }),
-  downloadYoutube: (url) => api.post('/videos/download-youtube', { url }),
+  downloadYoutube: (url, redownload = false) =>
+    api.post('/videos/download-youtube', { url, redownload }),
   deleteVideo: (id) => api.delete(`/videos/${id}`),
   streamUrl: (fileName) => `${API_BASE}/videos/stream/${fileName}`,
   thumbnailUrl: (thumbnailName) => `${API_BASE}/videos/thumbnail/${thumbnailName}`,

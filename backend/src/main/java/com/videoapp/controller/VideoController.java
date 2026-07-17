@@ -1,10 +1,10 @@
 package com.videoapp.controller;
 
 import com.videoapp.dto.VideoDTO;
+import com.videoapp.exception.AlreadyDownloadedException;
 import com.videoapp.model.User;
 import com.videoapp.service.UserService;
 import com.videoapp.service.VideoService;
-import com.videoapp.service.YouTubeDownloadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
@@ -22,7 +22,6 @@ import java.util.Map;
 public class VideoController {
 
     private final VideoService videoService;
-    private final YouTubeDownloadService youTubeDownloadService;
     private final UserService userService;
 
     @PostMapping("/upload")
@@ -34,24 +33,33 @@ public class VideoController {
             User user = userService.findByEmail(auth.getName());
             VideoDTO video = videoService.uploadVideo(file, title, description, user.getId());
             return ResponseEntity.ok(video);
+        } catch (AlreadyDownloadedException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "status", "already_downloaded",
+                    "message", e.getMessage()));
         } catch (IOException e) {
             return ResponseEntity.status(500).body(Map.of("error", "Upload failed: " + e.getMessage()));
         }
     }
 
     @PostMapping("/download-youtube")
-    public ResponseEntity<?> downloadFromYoutube(@RequestBody Map<String, String> request,
+    public ResponseEntity<?> downloadFromYoutube(@RequestBody Map<String, Object> request,
                                                   Authentication auth) {
         try {
-            String url = request.get("url");
+            Object urlValue = request.get("url");
+            String url = urlValue == null ? null : String.valueOf(urlValue);
             if (url == null || url.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "URL is required"));
             }
+            boolean redownload = Boolean.parseBoolean(String.valueOf(request.get("redownload")));
             User user = userService.findByEmail(auth.getName());
-            YouTubeDownloadService.DownloadResult result = youTubeDownloadService.download(url, user.getId());
-            VideoDTO video = videoService.saveDownloadedVideo(
-                    result.filePath(), result.title(), result.fileSize(), user.getId());
+            VideoDTO video = videoService.addYoutubeVideo(url, user.getId(), redownload);
             return ResponseEntity.ok(video);
+        } catch (AlreadyDownloadedException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "status", "already_downloaded",
+                    "message", e.getMessage(),
+                    "videoId", e.getVideoId() == null ? "" : e.getVideoId()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", "Download failed: " + e.getMessage()));
         }
